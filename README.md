@@ -69,10 +69,3 @@
 ### 🖼️ Mostrar  
 - `plt.show()`  
 
----
-
-### ✅ Nota:  
-Este documento está listo para convertirse a PDF usando herramientas como:  
-- **Pandoc**: `pandoc cheatsheet.md -o cheatsheet.pdf`  
-- **Google Docs**: Copia y pega el contenido y exporta a PDF.  
-- **Convertidores en línea**: [Smallpdf](https://smallpdf.com/), [PDFmyURL](https://pdfmyurl.com/).
