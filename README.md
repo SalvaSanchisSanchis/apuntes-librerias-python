@@ -1,192 +1,237 @@
-# Guía Definitiva de Pandas para Ciencia de Datos
+# Guía de Referencia y Operaciones en Pandas
 
-Una guía profesional, práctica y fácil de entender para dominar la manipulación y análisis de datos en Python utilizando la librería **Pandas**.
+Una guía técnica orientada a la manipulación, limpieza, filtrado y agregación de datos tabulares utilizando la librería **Pandas**.
+
+## 📑 Índice
+
+1. [Carga de Datos y Exploración Inicial](#1-carga-de-datos-y-exploración-inicial)
+2. [Selección Avanzada (`loc`, `iloc`, `at`)](#2-selección-avanzada-loc-iloc-at)
+3. [Filtrado Condicional y Máscaras Booleanas](#3-filtrado-condicional-y-máscaras-booleanas)
+4. [Manipulación de Columnas y Tipos de Datos](#4-manipulación-de-columnas-y-tipos-de-datos)
+5. [Manejo de Valores Nulos y Duplicados](#5-manejo-de-valores-nulos-y-duplicados)
+6. [Ordenación y Estadísticos Descriptivos](#6-ordenación-y-estadísticos-descriptivos)
+7. [Agrupaciones y Agregaciones (`groupby` y `agg`)](#7-agrupaciones-y-agregaciones-groupby-y-agg)
+8. [Combinación y Unión de Tablas (`merge` y `concat`)](#8-combinación-y-unión-de-tablas-merge-y-concat)
+9. [Lectura y Escritura de Ficheros (CSV y Excel)](#9-lectura-y-escritura-de-ficheros-csv-y-excel)
 
 ---
 
-## 📈 Índice
-1. [Introducción y Configuración](#1-introducción-y-configuración)
-2. [Estructuras de Datos Principales](#2-estructuras-de-datos-principales)
-3. [Carga y Exportación de Datos](#3-carga-y-exportación-de-datos)
-4. [Exploración Inicial](#4-exploración-inicial)
-5. [Selección, Indexación y Filtrado](#5-selección-indexación-y-filtrado)
-6. [Limpieza y Transformación de Datos](#6-limpieza-y-transformación-de-datos)
-7. [Agrupaciones y Agregaciones (GroupBy)](#7-agrupaciones-y-agregaciones-groupby)
-8. [Combinación de DataFrames (Merge, Join, Concat)](#8-combinación-de-dataframes-merge-join-concat)
-9. [Buenas Prácticas y Consejos de Rendimiento](#9-buenas-prácticas-y-consejos-de-rendimiento)
+## 1. Carga de Datos y Exploración Inicial
 
----
-
-## 1. Introducción y Configuración
-
-Pandas es la librería estándar en Python para el análisis de datos. Está construida sobre NumPy y proporciona estructuras de datos rápidas, flexibles y expresivas.
+La carga eficiente de ficheros estructurados es el primer paso en cualquier pipeline analítico.
 
 ```python
 import pandas as pd
-import numpy as np
 
-# Configurar visualización para ver más columnas en la consola
-pd.set_option('display.max_columns', 100)
-pd.set_option('display.width', 1000)
+# Cargar un archivo CSV estándar
+df_usuarios = pd.read_csv('usuarios.csv')
+
+# Cargar un archivo separado por tabuladores (TSV) especificando el índice
+df_productos = pd.read_csv('productos.csv', sep='\t', index_col='Codigo')
+
+# Exploración estructural básica
+print(df_usuarios.head(5))       # Primeras filas
+print(df_usuarios.tail(3))       # Últimas filas
+print(df_usuarios.shape)         # Dimensiones (filas, columnas)
+print(df_usuarios.columns)       # Nombres de columnas
+print(df_usuarios.index)         # Tipo de índice
+print(df_usuarios.dtypes)        # Tipos de datos por columna
+df_usuarios.info()               # Resumen completo con nulos y memoria
+
+# Métricas de tamaño
+total_filas = len(df_usuarios)
+dimensiones = df_usuarios.shape
+total_elementos = df_usuarios.size
+valores_unicos = df_usuarios['Categoria'].nunique()
 ```
 
 ---
 
-## 2. Estructuras de Datos Principales
+## 2. Selección Avanzada (`loc`, `iloc`, `at`)
 
-Pandas maneja principalmente dos estructuras de datos:
-* **`Series`**: Un array unidimensional con etiquetas (similar a una columna o una fila).
-* **`DataFrame`**: Una estructura tabular bidimensional con filas y columnas etiquetadas (similar a una tabla SQL o una hoja de Excel).
+El acceso preciso a celdas, filas y columnas se realiza mediante indexación explícita o posicional.
 
 ```python
-# Crear una Serie
-serie = pd.Series([10, 20, 30, 40], index=['a', 'b', 'c', 'd'])
+# 1. Selección por etiquetas (.loc)
+subset_etiqueta = df_usuarios.loc[0:10, ['Nombre', 'Edad', 'Correo']]
 
-# Crear un DataFrame
-datos = {
-    'Nombre': ['Ana', 'Carlos', 'Sofía', 'Luis'],
-    'Edad': [28, 34, 22, 41],
-    'Ciudad': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla']
+# 2. Selección por posición numérica (.iloc) - el límite superior no es inclusivo
+subset_pos = df_usuarios.iloc[100:111, 0:4]
+
+# 3. Acceso rápido a valores escalares (.at y .loc)
+edad_usuario = df_usuarios.at[0, 'Edad']
+edad_usuario_loc = df_usuarios.loc[0, 'Edad']
+
+# 4. Modificación puntual de datos
+df_usuarios.at[0, 'Edad'] = 30
+```
+
+---
+
+## 3. Filtrado Condicional y Máscaras Booleanas
+
+Las máscaras permiten aislar subconjuntos de datos aplicando expresiones lógicas vectorizadas.
+
+```python
+# Filtrado simple con operadores lógicos
+mascara_edad = df_usuarios['Edad'] > 50
+df_mayores = df_usuarios[mascara_edad]
+
+# Filtrado con múltiples condiciones (AND, OR)
+mascara_compleja = (df_usuarios['Edad'] > 25) & (df_usuarios['Activo'] == True)
+df_filtrado = df_usuarios[mascara_compleja]
+
+# Uso de métodos integrados (.isin() y .between())
+df_ciudades = df_usuarios[df_usuarios['Ciudad'].isin(['Madrid', 'Barcelona', 'Valencia'])]
+df_precio = df_usuarios[df_usuarios['Precio'].between(10, 100)]
+
+# Filtrado dinámico mediante el método .query()
+df_query = df_usuarios.query("Edad > 30 and Activo == True")
+
+# Conteo de elementos filtrados
+num_coincidentes = len(df_usuarios[mascara_edad])
+```
+
+---
+
+## 4. Manipulación de Columnas y Tipos de Datos
+
+La creación, transformación y gestión de columnas determina la calidad de la estructura de datos.
+
+```python
+# Creación de nuevas columnas mediante operaciones aritméticas
+df_usuarios['Gasto_Total'] = df_usuarios['Precio'] + df_usuarios['Impuestos']
+
+# Inserción de columnas en una posición específica con valores booleanos o condicionales
+es_adulto = (df_usuarios['Edad'] >= 18).fillna(False)
+df_usuarios.insert(0, 'EsAdulto', es_adulto)
+
+# Renombrar columnas
+df_usuarios = df_usuarios.rename(columns={'Edad': 'Anios', 'Correo': 'Email'})
+
+# Eliminación de columnas
+df_usuarios = df_usuarios.drop(columns=['Temporal1', 'Temporal2'])
+
+# Conversión de tipos de datos (Cast)
+df_usuarios['ID_Cliente'] = df_usuarios['ID_Cliente'].astype(str)
+
+# Precaución con copias vs referencias en memoria
+df_copia = df_usuarios.copy()       # Modificaciones no afectan al original
+df_referencia = df_usuarios        # Modificaciones afectan directamente al original
+```
+
+---
+
+## 5. Manejo de Valores Nulos y Duplicados
+
+Identificar y tratar registros incompletos o redundantes asegura la integridad analítica.
+
+```python
+# Detección de nulos
+conteo_nulos = df_usuarios.isnull().sum()
+
+# Eliminación de filas con nulos en subconjuntos específicos
+df_limpio = df_usuarios.dropna(subset=['Email', 'Telefono'])
+
+# Imputación de nulos (rellenado con constantes, medias o propagación)
+df_usuarios['Salario'] = df_usuarios['Salario'].fillna(df_usuarios['Salario'].mean())
+df_usuarios['Estado'] = df_usuarios['Estado'].ffill()  # Propagar valor anterior
+
+# Gestión de registros duplicados
+num_duplicados = df_usuarios.duplicated().sum()
+df_sin_duplicados = df_usuarios.drop_duplicates()
+
+# Concatenación con eliminación de duplicados mediante índices limpios
+df_concatenado = pd.concat([df_parte1, df_parte2], ignore_index=True)
+```
+
+---
+
+## 6. Ordenación y Estadísticos Descriptivos
+
+Obtener resúmenes estadísticos globales y ordenar la información de forma estructurada.
+
+```python
+# Ordenar valores por una o más columnas
+df_ordenado = df_usuarios.sort_values(by=['Edad', 'Salario'], ascending=[False, True])
+
+# Ordenar por el índice del DataFrame
+df_por_indice = df_usuarios.set_index('Codigo').sort_index()
+
+# Resumen estadístico para variables numéricas y categóricas
+stats_num = df_usuarios.describe()
+stats_cat = df_usuarios.describe(exclude='number')
+
+# Frecuencias absolutas y relativas (normalizadas)
+conteo_categorias = df_usuarios['Categoria'].value_counts()
+proporcion_categorias = df_usuarios['Categoria'].value_counts(normalize=True)
+
+# Correlación lineal entre variables numéricas
+correlacion = df_usuarios['Edad'].corr(df_usuarios['Salario'])
+```
+
+---
+
+## 7. Agrupaciones y Agregaciones (`groupby` y `agg`)
+
+El patrón Split-Apply-Combine permite resumir métricas aplicando funciones estadísticas por categorías.
+
+```python
+# Agrupación simple con múltiples funciones de agregación
+agrupacion_basica = df_usuarios.groupby('Departamento')['Salario'].agg(['mean', 'count', 'std'])
+
+# Agrupación por múltiples claves
+agrupacion_multiple = df_usuarios.groupby(['Departamento', 'Puesto'])['Salario'].mean().sort_values(ascending=False)
+
+# Uso de diccionarios para aplicar funciones específicas por columna
+diccionario_agregacion = {
+    'Edad': 'mean',
+    'Salario': 'max',
+    'ID_Cliente': 'count'
 }
-df = pd.DataFrame(datos)
+df_resumen = df_usuarios.groupby('Departamento').agg(diccionario_agregacion).reset_index()
+
+# Renombrado avanzado en agregaciones complejas
+df_informe = df_usuarios.groupby(['Region', 'Segmento']).agg(
+    salario_medio=('Salario', 'mean'),
+    total_empleados=('ID_Cliente', 'count')
+).reset_index()
 ```
 
 ---
 
-## 3. Carga y Exportación de Datos
+## 8. Combinación y Unión de Tablas (`merge` y `concat`)
 
-Pandas soporta una gran variedad de formatos de archivo. Los más comunes son CSV, Excel, JSON y bases de datos SQL.
+Integrar múltiples fuentes de datos relacionales mediante cruces de bases de datos.
 
 ```python
-# Cargar datos
-df_csv = pd.read_csv('datos.csv')
-df_excel = pd.read_excel('datos.xlsx', sheet_name='Hoja1')
-df_json = pd.read_json('datos.json')
+# 1. Cruces relacionales avanzados (Merge)
+# Tipos de join: 'inner' (intersección), 'left' (todo el izquierdo), 'outer' (unión completa)
+df_resultado_inner = pd.merge(df_empleados, df_departamentos, on='id_depto', how='inner')
+df_resultado_left = pd.merge(df_empleados, df_departamentos, on='id_depto', how='left')
 
-# Exportar datos (evitando guardar el índice por defecto)
-df.to_csv('resultado.csv', index=False)
-df.to_excel('resultado.xlsx', index=False)
+# 2. Apilado vertical u horizontal (Concat)
+df_apilado_filas = pd.concat([df_bloque1, df_bloque2], axis=0, ignore_index=True)
+df_unido_columnas = pd.concat([df_izq, df_der], axis=1)
 ```
 
 ---
 
-## 4. Exploración Inicial
+## 9. Lectura y Escritura de Ficheros (CSV y Excel)
 
-Antes de transformar los datos, es vital entender su estructura, tipos de datos y posibles anomalías.
-
-```python
-df.head(5)       # Primeras 5 filas
-df.tail(3)       # Útimas 3 filas
-df.shape         # Dimensiones (filas, columnas)
-df.info()        # Tipos de datos y valores no nulos
-df.describe()    # Resumen estadístico de variables numéricas
-df.columns       # Nombres de las columnas
-df.dtypes        # Tipos de datos por columna
-```
-
----
-
-## 5. Selección, Indexación y Filtrado
-
-### Selección de columnas y filas
-```python
-# Seleccionar una columna (retorna una Serie)
-edades = df['Edad']
-
-# Seleccionar múltiples columnas (retorna un DataFrame)
-sub_df = df[['Nombre', 'Ciudad']]
-
-# Selección por etiqueta (loc) y posición numérica (iloc)
-df.loc[0]            # Fila con etiqueta 0
-df.iloc[0:2]         # Primeras dos filas por posición
-df.loc[0, 'Nombre']  # Celda específica por etiqueta
-```
-
-### Filtrado condicional
-```python
-# Filtrar mayores de 30 años
-mayores_30 = df[df['Edad'] > 30]
-
-# Filtrar con múltiples condiciones (AND: &, OR: |)
-filtro_multiple = df[(df['Edad'] > 25) & (df['Ciudad'] == 'Madrid')]
-```
-
----
-
-## 6. Limpieza y Transformación de Datos
-
-### Manejo de Valores Nulos
-```python
-df.isnull().sum()            # Contar valores nulos por columna
-df_clean = df.dropna()       # Eliminar filas con cualquier valor nulo
-df_filled = df.fillna(0)     # Rellenar nulos con un valor constante
-df['Edad'] = df['Edad'].fillna(df['Edad'].median()) # Rellenar con la mediana
-```
-
-### Duplicados y Tipos de Datos
-```python
-df.duplicated().sum()        # Contar filas duplicadas
-df = df.drop_duplicates()    # Eliminar duplicados
-
-# Cambiar tipo de dato
-df['Edad'] = df['Edad'].astype(int)
-```
-
-### Creación y Modificación de Columnas
-```python
-# Crear una nueva columna basada en operaciones
-df['Edad_en_10_anos'] = df['Edad'] + 10
-
-# Aplicar funciones personalizadas (Lambda o funciones externas)
-df['Nombre_Mayus'] = df['Nombre'].apply(lambda x: x.upper())
-```
-
----
-
-## 7. Agrupaciones y Agregaciones (GroupBy)
-
-Permite dividir los datos en grupos basados en criterios y aplicar funciones estadísticas.
+Persistencia de DataFrames transformados a formatos de almacenamiento estándar.
 
 ```python
-# Agrupar por ciudad y calcular la edad promedio
-promedio_edad = df.groupby('Ciudad')['Edad'].mean()
+# Carga de hojas de cálculo de Excel (requiere openpyxl)
+df_excel = pd.read_excel('datos_financieros.xlsx', sheet_name='Balance')
 
-# Múltiples funciones de agregación
-resumen = df.groupby('Ciudad')['Edad'].agg(['min', 'max', 'mean', 'count'])
+# Exportar un DataFrame a CSV (con o sin índice)
+df_usuarios.to_csv('usuarios_procesados.csv', index=False)
+
+# Exportar manteniendo el índice personalizado
+df_usuarios.set_index('ID_Cliente').to_csv('usuarios_con_indice.csv', index=True)
+
+# Validación de lectura/escritura mediante verificación de igualdad
+df_releido = pd.read_csv('usuarios_con_indice.csv', index_col=0)
+son_iguales = df_releido.equals(df_usuarios.set_index('ID_Cliente'))
 ```
-
----
-
-## 8. Combinación de DataFrames
-
-### Concatenación (Unir vertical u horizontalmente)
-```python
-# Apilar DataFrames (filas)
-df_total = pd.concat([df1, df2], axis=0, ignore_index=True)
-
-# Unir columnas
-df_lados = pd.concat([df_izq, df_der], axis=1)
-```
-
-### Cruces (Merge / Joins)
-```python
-# Cruce tipo SQL (Inner Join)
-df_merged = pd.merge(df_empleados, df_departamentos, on='id_depto', how='inner')
-# Opciones de 'how': 'inner', 'outer', 'left', 'right'
-```
-
----
-
-## 9. Buenas Prácticas y Consejos de Rendimiento
-
-1. **Evita bucles `for` explícitos**: Recorrer filas con `for` es extremadamente lento en Pandas. Utiliza operaciones vectorizadas o métodos como `.apply()`.
-2. **Usa tipos de datos eficientes**: Si una columna categórica tiene pocos valores únicos, conviértela a tipo `category` para ahorrar memoria:
-   ```python
-   df['Ciudad'] = df['Ciudad'].astype('category')
-   ```
-3. **Carga masiva por bloques**: Si trabajas con archivos CSV gigantescos que no caben en memoria RAM, usa el parámetro `chunksize`:
-   ```python
-   for chunk in pd.read_csv('archivo_gigante.csv', chunksize=10000):
-       # Procesar cada chunk
-       pass
-   ```
